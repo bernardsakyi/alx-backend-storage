@@ -1,1 +1,1 @@
-# This directory contains MySQL queries
+# Advanced section of Mysql finally :)

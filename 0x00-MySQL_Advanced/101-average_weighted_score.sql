@@ -1,36 +1,18 @@
--- This SQL script creates a stored procedure named 'ComputeAverageWeightedScoreForUser' which takes in one parameter user_id.
--- It computes the average weighted score for a user by summing up the product of scores and weights of the user from the 'corrections' table, summing up the total weight, and then dividing the total weighted score by the total weight, and then updating the 'average_score' field of the user in the 'users' table.
+--  computes and store the average weighted score for a student.
 
-DROP PROCEDURE IF EXISTS ComputeAverageWeightedScoreForUsers;
-DELIMITER $$
-CREATE PROCEDURE ComputeAverageWeightedScoreForUsers ()
+DELIMITER //
+CREATE PROCEDURE `ComputeAverageWeightedScoreForUsers` ()
 BEGIN
-    ALTER TABLE users ADD total_weighted_score INT NOT NULL;
-    ALTER TABLE users ADD total_weight INT NOT NULL;
+DECLARE total_W, final_W, check_C INT;
+DECLARE check_A INT DEFAULT 1;
+SET total_W = ((SELECT SUM(`weight`) FROM projects));
+SET check_C = (SELECT COUNT(id) FROM users);
 
-    UPDATE users
-        SET total_weighted_score = (
-            SELECT SUM(corrections.score * projects.weight)
-            FROM corrections
-                INNER JOIN projects
-                    ON corrections.project_id = projects.id
-            WHERE corrections.user_id = users.id
-            );
-
-    UPDATE users
-        SET total_weight = (
-            SELECT SUM(projects.weight)
-                FROM corrections
-                    INNER JOIN projects
-                        ON corrections.project_id = projects.id
-                WHERE corrections.user_id = users.id
-            );
-
-    UPDATE users
-        SET users.average_score = IF(users.total_weight = 0, 0, users.total_weighted_score / users.total_weight);
-    ALTER TABLE users
-        DROP COLUMN total_weighted_score;
-    ALTER TABLE users
-        DROP COLUMN total_weight;
-END $$
+WHILE check_A < check_C + 1 DO
+    SET final_W = (SELECT SUM(projects.weight * corrections.score) FROM projects
+    INNER JOIN corrections ON corrections.project_id = projects.id AND corrections.user_id = check_A);
+    UPDATE users SET users.average_score = final_W / total_W WHERE users.id = check_A;
+    SET check_A = check_A + 1;
+    END WHILE;
+END //
 DELIMITER ;
